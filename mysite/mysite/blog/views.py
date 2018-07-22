@@ -1,8 +1,9 @@
 from django.shortcuts import render_to_response, get_object_or_404
-from .models import Blog, BlogType
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.conf import settings
+from .models import Blog, BlogType
+from read_statistics.utils import read_statistic_once_read
 
 
 def get_blog_list_common_data(request, blogs_all_list):
@@ -66,9 +67,13 @@ def blogs_with_type(request, blogs_type_pk):
 
 
 def blog_detail(request, blog_pk):
+    blog = get_object_or_404(Blog, pk=blog_pk)
+    read_cookie_key = read_statistic_once_read(request, blog)
     context = {}
     blog = get_object_or_404(Blog, pk=blog_pk)
     context['previous_blog'] = Blog.objects.filter(created_time__gt=blog.created_time).last()
     context['next_blog'] = Blog.objects.filter(created_time__lt=blog.created_time).first()
     context['blog'] = blog
-    return render_to_response('blog/blog_detail.html', context)
+    response = render_to_response('blog/blog_detail.html', context)
+    response.set_cookie(read_cookie_key, 'true')
+    return response
